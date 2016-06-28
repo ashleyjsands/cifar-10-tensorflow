@@ -23,15 +23,15 @@ def depth_concat(values):
     # The output of this method will have a shape (batch, output_x, output_y, total_feature_maps),
     # where output_x and output_y is the largest dimensions out of all of the input layers, 
     # yotal_feature_maps is the number of feature maps in all concatenated layers.
-    batch_index = 0
+    depth_index = 0
     x_index = 1
     y_index = 2
-    depth_index = 3
+    rgb_index = 3
     max_x = max(map(lambda a: a.get_shape().as_list()[x_index], values))
     max_y = max(map(lambda a: a.get_shape().as_list()[y_index], values))
     print max_x, max_y
-    batch_size = values[0].get_shape().as_list()[batch_index] # Assume all values have this dimension value
     depth_size = values[0].get_shape().as_list()[depth_index] # Assume all values have this dimension value
-    shape = [batch_size, max_x, max_y, depth_size]
+    rgb_size = values[0].get_shape().as_list()[rgb_index] # Assume all values have this dimension value
+    shape = [depth_size, max_x, max_y, rgb_size]
     padded_values = map(lambda a: zero_pad(a, shape), values)
     return tf.concat(depth_index, padded_values)

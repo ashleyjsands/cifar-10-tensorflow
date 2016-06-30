@@ -22,16 +22,24 @@ def depth_concat(values):
     
     # The output of this method will have a shape (batch, output_x, output_y, total_feature_maps),
     # where output_x and output_y is the largest dimensions out of all of the input layers, 
-    # yotal_feature_maps is the number of feature maps in all concatenated layers.
-    depth_index = 0
+    # total_feature_maps is the number of feature maps in all concatenated layers.
+
+    # In neural networks, depth can refer to the number of layers in a model, but it can also refer to the number of channels in an 'activation volume'.
+    # http://cs231n.github.io/convolutional-networks/#conv states:
+    # 'In particular, unlike a regular Neural Network, the layers of a ConvNet have neurons arranged in 3 dimensions: width, height, depth. 
+    # (Note that the word depth here refers to the third dimension of an activation volume, not to the depth of a full Neural Network, which 
+    # can refer to the total number of layers in a network.)'.
+    # 
+    # so in this case the depth is the channels index, the fourth dimension.
+    batch_index = 0
     x_index = 1
     y_index = 2
-    rgb_index = 3
+    depth_index = 3 
     max_x = max(map(lambda a: a.get_shape().as_list()[x_index], values))
     max_y = max(map(lambda a: a.get_shape().as_list()[y_index], values))
     print max_x, max_y
+    batch_size = values[0].get_shape().as_list()[batch_index] # Assume all values have this dimension value
     depth_size = values[0].get_shape().as_list()[depth_index] # Assume all values have this dimension value
-    rgb_size = values[0].get_shape().as_list()[rgb_index] # Assume all values have this dimension value
-    shape = [depth_size, max_x, max_y, rgb_size]
+    shape = [batch_size, max_x, max_y, depth_size]
     padded_values = map(lambda a: zero_pad(a, shape), values)
     return tf.concat(depth_index, padded_values)

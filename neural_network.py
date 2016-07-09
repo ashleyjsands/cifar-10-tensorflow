@@ -41,7 +41,7 @@ def depth_concat(values):
     depth_index = 3 
     max_x = max(map(lambda a: a.get_shape().as_list()[x_index], values))
     max_y = max(map(lambda a: a.get_shape().as_list()[y_index], values))
-    print max_x, max_y
+    #print max_x, max_y
     batch_size = values[0].get_shape().as_list()[batch_index] # Assume all values have this dimension value
     depth_size = sum(map(lambda a: a.get_shape().as_list()[depth_index], values))
     shape = [batch_size, max_x, max_y, -1]

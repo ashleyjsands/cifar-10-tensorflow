@@ -9,11 +9,15 @@ def create_padding_dimension(n):
     return [int(math.ceil(n / 2.0)), int(math.floor(n / 2.0))]
 
 def zero_pad(input, shape):
-    print "input shape %s" % np.array(input.get_shape().as_list())
-    print "target shape %s" % np.array(shape)
-    shape_disparity = np.array(shape) - np.array(input.get_shape().as_list())
+    #print "input shape %s" % np.array(input.get_shape().as_list())
+    #print "target shape %s" % np.array(shape)
+    input_shape = input.get_shape().as_list()
+    shape_disparity = np.array(shape) - np.array(input_shape)
+    for i in range(len(shape)):
+        if shape[i] == -1:
+            shape_disparity[i] = 0
     padding = map(create_padding_dimension, shape_disparity)
-    print "Zero pad: padding %s" % padding
+    #print "Zero pad: padding %s" % padding
     return tf.pad(input, padding)
 
 def depth_concat(values):
@@ -39,7 +43,7 @@ def depth_concat(values):
     max_y = max(map(lambda a: a.get_shape().as_list()[y_index], values))
     print max_x, max_y
     batch_size = values[0].get_shape().as_list()[batch_index] # Assume all values have this dimension value
-    depth_size = values[0].get_shape().as_list()[depth_index] # Assume all values have this dimension value
-    shape = [batch_size, max_x, max_y, depth_size]
+    depth_size = sum(map(lambda a: a.get_shape().as_list()[depth_index], values))
+    shape = [batch_size, max_x, max_y, -1]
     padded_values = map(lambda a: zero_pad(a, shape), values)
     return tf.concat(depth_index, padded_values)

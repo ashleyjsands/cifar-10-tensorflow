@@ -1,5 +1,4 @@
 ipython==2.4.1
-tensorflow
 pyzmq
 jinja2
 tornado

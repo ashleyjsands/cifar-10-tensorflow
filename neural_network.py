@@ -1,3 +1,4 @@
+from __future__ import print_function
 import math
 
 import numpy as np
@@ -16,7 +17,7 @@ def zero_pad(input, shape):
     for i in range(len(shape)):
         if shape[i] == -1:
             shape_disparity[i] = 0
-    padding = map(create_padding_dimension, shape_disparity)
+    padding = list(map(create_padding_dimension, shape_disparity))
     #print "Zero pad: padding %s" % padding
     return tf.pad(input, padding)
 
@@ -45,5 +46,6 @@ def depth_concat(values):
     batch_size = values[0].get_shape().as_list()[batch_index] # Assume all values have this dimension value
     depth_size = sum(map(lambda a: a.get_shape().as_list()[depth_index], values))
     shape = [batch_size, max_x, max_y, -1]
-    padded_values = map(lambda a: zero_pad(a, shape), values)
+    padded_values = list(map(lambda a: zero_pad(a, shape), values))
+    #print(padded_values)
     return tf.concat(depth_index, padded_values)

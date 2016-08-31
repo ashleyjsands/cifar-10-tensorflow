@@ -7,16 +7,28 @@ from neural_network import accuracy
 def get_best_step(steps_to_predictions, labels):
     best_accuracy = 0
     best_accuracy_step = 0
+    steps_to_accuracies = {}
     for step, predictions in steps_to_predictions.items():
         acc = accuracy(predictions, labels)
+        steps_to_accuracies[step] = acc
         steps_to_predictions[step] = predictions
         if acc > best_accuracy:
             best_accuracy = acc
             best_accuracy_step = step
-    return best_accuracy, best_accuracy_step
+    return best_accuracy, best_accuracy_step, steps_to_accuracies
+
+def to_float_array(iterable):
+    return np.array([float(i) for i in iterable])
 
 def visualise_accuracies(steps_to_validation_predictions, labels):
-    best_validation_accuracy, best_validation_step = get_best_step(steps_to_validation_predictions, labels)
+    best_validation_accuracy, best_validation_step, steps_to_accuracies = get_best_step(steps_to_validation_predictions, labels)
+    keys = sorted(steps_to_accuracies.keys())
+    steps = to_float_array(keys)
+    accuracies = to_float_array([steps_to_accuracies[s] for s in keys])
+    plt.plot(steps, accuracies)
+    plt.ylabel('Validation accuracy')
+    plt.show()
+
     print("The best validation accuracy was %s at step %s" % (best_validation_accuracy, best_validation_step))
     
     best_prediction = steps_to_validation_predictions[best_validation_step]

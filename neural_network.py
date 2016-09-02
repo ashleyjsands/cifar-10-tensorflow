@@ -61,6 +61,7 @@ def accuracy(predictions, labels):
           / predictions.shape[0])
 
 def train_model_in_batches(model, datasets, steps, dropout_keep_prob, load_model = False):
+    num_labels = get_num_labels(datasets.train_labels)
     batch_size = model.batch_size
     start_time = time.time()
     steps_to_validation_predictions = {}
@@ -108,10 +109,14 @@ def train_model_in_batches(model, datasets, steps, dropout_keep_prob, load_model
         print("Elapsed time: %s hours" % ((time.time() - start_time) / seconds_in_an_hour))
         return steps_to_validation_predictions
 
+def get_num_labels(labels):
+    num_labels_index = 1
+    return labels.shape[num_labels_index]
+
+
 def eval_predictions(session, model, dataset, labels):
     dataset_size = dataset.shape[0]
-    num_labels_index = 1
-    num_labels = labels.shape[num_labels_index]
+    num_labels = get_num_labels(labels)
     batch_size = model.eval_batch_size
     #print "dataset_size: ", dataset_size, " batch_size: ", batch_size
     if dataset_size % batch_size != 0:

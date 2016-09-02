@@ -2,6 +2,9 @@ import os, pickle, tarfile, ntpath
 import numpy as np
 
 data_dir = "."
+image_size = 32
+num_labels = 10
+num_channels = 3 # RGB
 
 import functools
 

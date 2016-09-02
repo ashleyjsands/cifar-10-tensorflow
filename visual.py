@@ -1,7 +1,7 @@
 from random import randint, shuffle
 import numpy as np
 import matplotlib.pyplot as plt
-from neural_network import accuracy
+from train import accuracy
 
 
 def get_best_step(steps_to_predictions, labels):

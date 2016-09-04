@@ -1,3 +1,4 @@
+import functools
 import tensorflow as tf
 
 from data import image_size, num_channels, num_labels
@@ -30,8 +31,8 @@ def create_inception_module(in_channels, out_channels, input_spatial_size, initi
     """
     Inception module:
     input layer
-              1x1 conv, 1x1 conv, 3x3 maxpool
-    1x1 conv, 3x3 conv, 5x5 conv, 1x1 conv
+                1x1+1 conv, 1x1+1 conv, 3x3+1 maxpool
+    1x1+1 conv, 3x3+1 conv, 5x5+1 conv, 1x1+1 conv
     DepthConcat
     AveragePool
     """
@@ -118,7 +119,7 @@ def create_inception_module_graph(module, input_tensor):
     #print("depth_concat_output shape: %s" % shape)
     return depth_concat_output
 
-def create_inception_module_model(learning_rate = 0.05, initialised_weights_stddev = 0.1, pre_layer_feature_maps = 64, feature_maps = 16, batch_size = 32, eval_batch_size = 1000, l2_lambda = 0.1, decay_steps = 10000, decay_rate = 0.96):
+def create_inception_module_model(learning_rate = 0.05, initialised_weights_stddev = 0.1, pre_layer_feature_maps = 64, module_feature_maps=[128], batch_size = 32, eval_batch_size = 1000, l2_lambda = 0.1, decay_steps = 10000, decay_rate = 0.96):
     graph = tf.Graph()
     with graph.as_default():
 
@@ -153,16 +154,29 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
         seven_by_seven_conv_pre_layer_weights = tf.Variable(tf.truncated_normal(
             [patch_size, patch_size, num_channels, post_layer_output_feature_maps], stddev=initialised_weights_stddev), name='7x7_pre_w')
         seven_by_seven_conv_pre_layer_biases = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[post_layer_output_feature_maps]), name='7x7_pre_b')
+        #print("image_size:", image_size)
         seven_by_seven_conv_pre_layer_output_size = get_filter_output_size(image_size, patch_size, stride)
+        #print("seven_by_seven_conv_pre_layer_output_size:", seven_by_seven_conv_pre_layer_output_size)
 
         three_by_three_maxpool_pre_layer_output_size = get_filter_output_size(seven_by_seven_conv_pre_layer_output_size, patch_size, stride)
+        #print("three_by_three_maxpool_pre_layer_output_size:", three_by_three_maxpool_pre_layer_output_size)
         
         # Module layers
-        first_module = create_inception_module(post_layer_output_feature_maps, feature_maps, three_by_three_maxpool_pre_layer_output_size, initialised_weights_stddev)
+        modules = []
+        in_channels = post_layer_output_feature_maps 
+        in_spatial_size = three_by_three_maxpool_pre_layer_output_size
+        number_of_reducing_layers = 2
+        stride = 1
+        number_of_adjacent_layers_in_inception_module = 4
+        for out_channels in module_feature_maps:
+            #print("in_spatial_size:", in_spatial_size)
+            module = create_inception_module(in_channels, out_channels, in_spatial_size, initialised_weights_stddev)
+            modules.append(module)
+            in_channels = number_of_adjacent_layers_in_inception_module * out_channels
+            in_spatial_size = get_filter_output_size(in_spatial_size, number_of_reducing_layers, stride)
 
         # Now a fully connected layer
-        number_of_adjacent_layers = 4
-        depth_concat_depth = feature_maps * number_of_adjacent_layers
+        depth_concat_depth = in_channels #module_feature_maps[-1] * number_of_adjacent_layers_in_inception_module
         # I expect avg_pool_ouput to have a shape of (batch_size, 1, 1, depth_concat_depth)
         # WARNING: I may have gotten the fc_weights tensor size wrong.
         #fc_layer_one_neurons = 25
@@ -198,12 +212,19 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
             pre_layers_output = lrn_output
             
             # Inception module(s)
-            modules_output = create_inception_module_graph(first_module, pre_layers_output)  
+            input_tensor = pre_layers_output
+            modules_output = None
+            for module in modules:
+                # The last module will set modules_output for use below.
+                #print("input_tensor shape:", input_tensor.get_shape().as_list())
+                modules_output = create_inception_module_graph(module, input_tensor)  
+                input_tensor = modules_output
 
             # The patch size of the avg_pool must match the patch_size of the depth_concat_output
             # I assume that the padding must be VALID based on Google's white paper: http://arxiv.org/pdf/1409.4842v1.pdf
             depth_concat_output_image_size_index = 1
             largest_patch_size = modules_output.get_shape().as_list()[depth_concat_output_image_size_index]
+            #print("largest_patch_size:", largest_patch_size)
             avg_pool_output = tf.nn.avg_pool(modules_output, [1, largest_patch_size, largest_patch_size, 1], [1, 1, 1, 1], padding='VALID', name=None)
             shape = avg_pool_output.get_shape().as_list()
             #print("avg_pool_output shape:", shape)
@@ -225,7 +246,8 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
 
         # Training computation.
         logits = create_model_graph(tf_train_dataset, add_dropout = True)
-        layer_weights = [ seven_by_seven_conv_pre_layer_weights ] + first_module.get_weights() + [ output_weights ]
+        module_weights = functools.reduce(lambda a, b: a + b, map(lambda m: m.get_weights(), modules))
+        layer_weights = [ seven_by_seven_conv_pre_layer_weights ] + module_weights + [ output_weights ]
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels) + get_l2_loss(l2_lambda, layer_weights))
 
         # Optimizer.

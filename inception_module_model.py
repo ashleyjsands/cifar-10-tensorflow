@@ -159,6 +159,7 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
         #print("seven_by_seven_conv_pre_layer_output_size:", seven_by_seven_conv_pre_layer_output_size)
 
         three_by_three_maxpool_pre_layer_output_size = get_filter_output_size(seven_by_seven_conv_pre_layer_output_size, patch_size, stride)
+        #pre_layer_output_spatial_size
         #print("three_by_three_maxpool_pre_layer_output_size:", three_by_three_maxpool_pre_layer_output_size)
         
         # Module layers

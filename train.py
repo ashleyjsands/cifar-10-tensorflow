@@ -45,7 +45,7 @@ def train_model_in_batches(model, datasets, steps, dropout_keep_prob, load_model
                 valdiation_accuracy = accuracy(validation_predictions, datasets.valid_labels)
                 print("step:", step, "minibatch loss:", l, "minibatch accuracy: %.1f%%" % training_accuracy, "validation accuracy: %.1f%%" % valdiation_accuracy)
                 untrained_validation_accuracy = (100 / num_labels) * 1.2
-                premature_stop_steps_minimum = 10000
+                premature_stop_steps_minimum = 30000
                 if valdiation_accuracy < untrained_validation_accuracy and step >= premature_stop_steps_minimum:
                     print("Premature stop due to low validation accuracy.")
                     return steps_to_validation_predictions

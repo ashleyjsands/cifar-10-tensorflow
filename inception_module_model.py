@@ -119,7 +119,7 @@ def create_inception_module_graph(module, input_tensor):
     #print("depth_concat_output shape: %s" % shape)
     return depth_concat_output
 
-def create_inception_module_model(learning_rate = 0.05, initialised_weights_stddev = 0.1, pre_layer_feature_maps = 64, module_feature_maps=[128], batch_size = 32, eval_batch_size = 1000, l2_lambda = 0.1, decay_steps = 10000, decay_rate = 0.96):
+def create_inception_module_model(learning_rate = 0.05, initialised_weights_stddev = 0.1, pre_layer_feature_maps = 64, module_feature_maps=[128], batch_size = 32, eval_batch_size = 1000, l2_lambda = 0.1, decay_steps = 10000, decay_rate = 0.96, add_pre_layer_maxpool = True):
     graph = tf.Graph()
     with graph.as_default():
 
@@ -165,7 +165,7 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
         # Module layers
         modules = []
         in_channels = post_layer_output_feature_maps 
-        in_spatial_size = three_by_three_maxpool_pre_layer_output_size
+        in_spatial_size = three_by_three_maxpool_pre_layer_output_size if add_pre_layer_maxpool else seven_by_seven_conv_pre_layer_output_size
         number_of_reducing_layers = 2
         stride = 1
         number_of_adjacent_layers_in_inception_module = 4
@@ -201,14 +201,19 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
             seven_by_seven_conv_pre_layer_output = tf.nn.relu(conv + seven_by_seven_conv_pre_layer_biases)
             #print "one_by_one_conv_weights_to_three_by_three_output shape: %s" % seven_by_seven_conv_pre_layer_output.get_shape().as_list()
             
-            # 3x3_mp
-            patch_size = 3
-            stride = 2
-            max_pool_output = tf.nn.max_pool(seven_by_seven_conv_pre_layer_output, [1, patch_size, patch_size, 1], [1, stride, stride, 1], padding='SAME')
+            lrn_input = None
+            if add_pre_layer_maxpool:
+                # 3x3_mp
+                patch_size = 3
+                stride = 2
+                max_pool_output = tf.nn.max_pool(seven_by_seven_conv_pre_layer_output, [1, patch_size, patch_size, 1], [1, stride, stride, 1], padding='SAME')
+                lrn_input = max_pool_output
+            else:
+                lrn_input = seven_by_seven_conv_pre_layer_output
             
             # https://www.tensorflow.org/versions/r0.10/api_docs/python/nn.html#local_response_normalization
             # TODO: tune the following hyperparameters: depth_radius, bias, alpha, beta
-            lrn_output = tf.nn.local_response_normalization(max_pool_output)
+            lrn_output = tf.nn.local_response_normalization(lrn_input)
             
             pre_layers_output = lrn_output
             

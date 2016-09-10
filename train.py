@@ -28,7 +28,8 @@ def train_model_in_batches(model, datasets, steps, dropout_keep_prob, load_model
             else:
                 raise Error("No checkpoint.")
         learning_check_step = 500
-        validation_step_size = max(steps / 100, learning_check_step)
+        minimum_validation_step_size = 1000
+        validation_step_size = int(max(steps / 100, minimum_validation_step_size))
         save_step_size = 50000
         untrained_validation_accuracy = (100 / num_labels) * 1.2
         premature_stop_steps_minimum = 3000

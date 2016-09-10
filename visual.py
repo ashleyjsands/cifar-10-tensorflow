@@ -20,13 +20,21 @@ def get_best_step(steps_to_predictions, labels):
 def to_float_array(iterable):
     return np.array([float(i) for i in iterable])
 
-def visualise_accuracies(steps_to_validation_predictions, labels):
-    best_validation_accuracy, best_validation_step, steps_to_accuracies = get_best_step(steps_to_validation_predictions, labels)
-    keys = sorted(steps_to_accuracies.keys())
-    steps = to_float_array(keys)
-    accuracies = to_float_array([steps_to_accuracies[s] for s in keys])
-    plt.plot(steps, accuracies)
-    plt.ylabel('Validation accuracy')
+def prepare_dict_for_plotting(a_dict):
+    sorted_keys = sorted(a_dict.keys())
+    keys = to_float_array(sorted_keys)
+    values = to_float_array([a_dict[s] for s in sorted_keys])
+    return keys, values
+
+def visualise_accuracies(steps_to_training_accuracies, steps_to_validation_predictions, labels):
+    best_validation_accuracy, best_validation_step, steps_to_validation_accuracies = get_best_step(steps_to_validation_predictions, labels)
+    steps, training_accuracies = prepare_dict_for_plotting(steps_to_training_accuracies)
+    plt.plot(steps, training_accuracies)
+    steps, validation_accuracies = prepare_dict_for_plotting(steps_to_validation_accuracies)
+    plt.plot(steps, validation_accuracies)
+    plt.xlabel('Steps')
+    plt.ylabel('Accuracy')
+    plt.legend(['batch accuracy', 'valdiation accuracy'], loc='upper left')
     plt.show()
 
     print("The best validation accuracy was %s at step %s" % (best_validation_accuracy, best_validation_step))

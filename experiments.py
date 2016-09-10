@@ -25,6 +25,9 @@ if __name__ == "__main__":
     #if run_on_cpu:
         #CUDA_VISIBLE_DEVICES = ''
     # 5K steps for GPU test
-    model = create_inception_module_model(learning_rate = 0.00025, eval_batch_size=100, l2_lambda = 0.025, pre_layer_feature_maps = 128, feature_maps = 64, initialised_weights_stddev = 0.25, decay_steps = 5000, decay_rate = 0.96)
+    # 4 module model
+    model = create_inception_module_model(learning_rate = 0.00025, eval_batch_size=100, l2_lambda = 0.025, pre_layer_feature_maps = 64,
+                                                  module_feature_maps = [128], initialised_weights_stddev = 0.24, decay_steps = 5000,
+                                                                                        decay_rate = 0.96, add_pre_layer_maxpool = True)
     steps_to_validation_predictions = train_model_in_batches(model, datasets, 5001, dropout_keep_prob = 0.9, load_model = False)
     correct_prediction_indexes, incorrect_prediction_indexes = visualise_accuracies(steps_to_validation_predictions, valid_labels)

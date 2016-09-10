@@ -12,6 +12,7 @@ def accuracy(predictions, labels):
 def train_model_in_batches(model, datasets, steps, dropout_keep_prob, load_model = False):
     batch_size = model.batch_size
     start_time = time.time()
+    steps_to_training_accuracies = {}
     steps_to_validation_predictions = {}
     with tf.Session(graph=model.graph) as session:
         init_op = tf.initialize_all_variables()
@@ -26,6 +27,11 @@ def train_model_in_batches(model, datasets, steps, dropout_keep_prob, load_model
                 print("model loaded")
             else:
                 raise Error("No checkpoint.")
+        learning_check_step = 500
+        validation_step_size = max(steps / 100, learning_check_step)
+        save_step_size = 50000
+        untrained_validation_accuracy = (100 / num_labels) * 1.2
+        premature_stop_steps_minimum = 3000
         for step in range(steps):
             offset = (step * batch_size) % (datasets.train_labels.shape[0] - batch_size)
             batch_data = datasets.train_dataset[offset:(offset + batch_size), :, :, :]
@@ -37,25 +43,25 @@ def train_model_in_batches(model, datasets, steps, dropout_keep_prob, load_model
             }
             _, l, predictions = session.run(
                 [model.optimizer, model.loss, model.train_prediction], feed_dict=feed_dict)
-            if (step % 1000 == 0):
+            
+            if (step % validation_step_size == 0) or step == learning_check_step:
                 training_accuracy = accuracy(predictions, batch_labels)
+                steps_to_training_accuracies[step] = training_accuracy
                 validation_predictions = eval_predictions(session, model, datasets.valid_dataset, datasets.valid_labels)
                 #print "validation_predictions shape: ", validation_predictions.shape, " valid_labels shape: ", datasets.valid_labels.shape
                 steps_to_validation_predictions[step] = validation_predictions
                 valdiation_accuracy = accuracy(validation_predictions, datasets.valid_labels)
                 print("step:", step, "minibatch loss:", l, "minibatch accuracy: %.1f%%" % training_accuracy, "validation accuracy: %.1f%%" % valdiation_accuracy)
-                untrained_validation_accuracy = (100 / num_labels) * 1.2
-                premature_stop_steps_minimum = 30000
                 if valdiation_accuracy < untrained_validation_accuracy and step >= premature_stop_steps_minimum:
                     print("Premature stop due to low validation accuracy.")
-                    return steps_to_validation_predictions
-            if step % 50000 == 0:
+                    return steps_to_training_accuracies, steps_to_validation_predictions
+            if step % save_step_size == 0:
                 save_path = model.saver.save(session, "./%s.ckpt" % model_name, global_step=model.global_step)
         test_predictions = eval_predictions(session, model, datasets.test_dataset, datasets.test_labels)
         print("Test accuracy at step %s: %.1f%%\n" % (step, accuracy(test_predictions, datasets.test_labels)))
         seconds_in_an_hour = 60 * 60
         print("Elapsed time: %s hours" % ((time.time() - start_time) / seconds_in_an_hour))
-        return steps_to_validation_predictions
+        return steps_to_training_accuracies, steps_to_validation_predictions
 
 def eval_predictions(session, model, dataset, labels):
     dataset_size = dataset.shape[0]

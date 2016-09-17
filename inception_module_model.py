@@ -5,6 +5,9 @@ from data import image_size, num_channels, num_labels
 from model import Model
 from neural_network import get_filter_output_size, depth_concat, get_l2_loss
 
+
+print_messages = False
+
 class Module():
 
     def __init__(self, one_by_one_conv_weights_to_three_by_three, one_by_one_conv_biases_to_three_by_three, one_by_one_conv_weights_to_five_by_five, one_by_one_conv_biases_to_five_by_five,
@@ -54,7 +57,7 @@ def create_inception_module(in_channels, out_channels, input_spatial_size, initi
     max_pool_size = 3
     max_pool_stride = 1
     three_by_three_max_pool_output_size = get_filter_output_size(input_spatial_size, max_pool_size, max_pool_stride)
-    #print "three_by_three_max_pool_output_size: %s" % three_by_three_max_pool_output_size
+    if print_messages: print("three_by_three_max_pool_output_size: %s" % three_by_three_max_pool_output_size)
     one_by_one_conv_weights_from_max_pool = tf.Variable(tf.truncated_normal(
         [three_by_three_max_pool_output_size, three_by_three_max_pool_output_size, in_channels, out_channels], stddev=initialised_weights_stddev),
                                                         name='1x1w_from_maxpool')
@@ -77,46 +80,46 @@ def create_inception_module(in_channels, out_channels, input_spatial_size, initi
 
 def create_inception_module_graph(module, input_tensor):
     # Adjacent layer 1
-    #print("input_tensor shape:", input_tensor.get_shape().as_list())
-    #print("one_by_one_conv_weights_to_three_by_three shape:", module.module.one_by_one_conv_weights_to_three_by_three.get_shape().as_list())
+    if print_messages: print("input_tensor shape:", input_tensor.get_shape().as_list())
+    if print_messages: print("one_by_one_conv_weights_to_three_by_three shape:", module.one_by_one_conv_weights_to_three_by_three.get_shape().as_list())
     conv = tf.nn.conv2d(input_tensor, module.one_by_one_conv_weights_to_three_by_three, [1, 1, 1, 1], padding='SAME')
     one_by_one_conv_weights_to_three_by_three_output = tf.nn.relu(conv + module.one_by_one_conv_biases_to_three_by_three)
-    #print("one_by_one_conv_weights_to_three_by_three_output shape:", one_by_one_conv_weights_to_three_by_three_output.get_shape().as_list())
+    if print_messages: print("one_by_one_conv_weights_to_three_by_three_output shape:", one_by_one_conv_weights_to_three_by_three_output.get_shape().as_list())
 
     conv = tf.nn.conv2d(input_tensor, module.one_by_one_conv_weights_to_five_by_five, [1, 1, 1, 1], padding='SAME')
     one_by_one_conv_weights_to_five_by_five_output = tf.nn.relu(conv + module.one_by_one_conv_biases_to_five_by_five)
-    #shape = one_by_one_conv_weights_to_five_by_five_output.get_shape().as_list()
-    #print "one_by_one_conv_weights_to_five_by_five_output shape: %s" % shape
+    shape = one_by_one_conv_weights_to_five_by_five_output.get_shape().as_list()
+    if print_messages: print("one_by_one_conv_weights_to_five_by_five_output shape: %s" % shape)
 
     max_pool_output = tf.nn.max_pool(input_tensor, [1, 3, 3, 1], [1, 1, 1, 1], padding='SAME')
     shape = max_pool_output.get_shape().as_list()
-    #print("max_pool_output shape: %s" % shape)
+    if print_messages: print("max_pool_output shape: %s" % shape)
 
     # Adjacent layer 2
     conv = tf.nn.conv2d(input_tensor, module.one_by_one_conv_weights_to_depthconcat, [1, 1, 1, 1], padding='SAME')
     one_by_one_output_to_depthconcat = tf.nn.relu(conv + module.one_by_one_conv_biases_to_depthconcat)
-    #shape = one_by_one_output_to_depthconcat.get_shape().as_list()
-    #print "one_by_one_output_to_depthconcat shape: %s" % shape
+    shape = one_by_one_output_to_depthconcat.get_shape().as_list()
+    if print_messages: print("one_by_one_output_to_depthconcat shape: %s" % shape)
 
     conv = tf.nn.conv2d(one_by_one_conv_weights_to_three_by_three_output, module.three_by_three_conv_weights, [1, 1, 1, 1], padding='SAME')
     three_by_three_output = tf.nn.relu(conv + module.three_by_three_conv_biases)
-    #shape = three_by_three_output.get_shape().as_list()
-    #print "three_by_three_output shape: %s" % shape
+    shape = three_by_three_output.get_shape().as_list()
+    if print_messages: print("three_by_three_output shape: %s" % shape)
 
     conv = tf.nn.conv2d(one_by_one_conv_weights_to_five_by_five_output, module.five_by_five_conv_weights, [1, 1, 1, 1], padding='SAME')
     five_by_five_output = tf.nn.relu(conv + module.five_by_five_conv_biases)
-    #shape = five_by_five_output.get_shape().as_list()
-    #print "five_by_five_output shape: %s" % shape
+    shape = five_by_five_output.get_shape().as_list()
+    if print_messages: print("five_by_five_output shape: %s" % shape)
 
-    #print("one_by_one_conv_weights_from_max_pool:", one_by_one_conv_weights_from_max_pool.get_shape().as_list())
+    if print_messages: print("one_by_one_conv_weights_from_max_pool:", module.one_by_one_conv_weights_from_max_pool.get_shape().as_list())
     conv = tf.nn.conv2d(max_pool_output, module.one_by_one_conv_weights_from_max_pool, [1, 1, 1, 1], padding='SAME')
     one_by_one_conv_weights_from_max_pool_output = tf.nn.relu(conv + module.one_by_one_conv_biases_from_max_pool)
-    #shape = one_by_one_conv_weights_from_max_pool_output.get_shape().as_list()
-    #print "one_by_one_conv_weights_from_max_pool_output shape: %s" % shape
+    shape = one_by_one_conv_weights_from_max_pool_output.get_shape().as_list()
+    if print_messages: print("one_by_one_conv_weights_from_max_pool_output shape: %s" % shape)
     
     depth_concat_output = depth_concat([one_by_one_output_to_depthconcat, three_by_three_output, five_by_five_output, one_by_one_conv_weights_from_max_pool_output])
-    #shape = depth_concat_output.get_shape().as_list()
-    #print("depth_concat_output shape: %s" % shape)
+    shape = depth_concat_output.get_shape().as_list()
+    if print_messages: print("depth_concat_output shape: %s" % shape)
     return depth_concat_output
 
 def create_inception_module_model(learning_rate = 0.05, initialised_weights_stddev = 0.1, pre_layer_feature_maps = 64, module_feature_maps=[128], batch_size = 32, eval_batch_size = 1000, l2_lambda = 0.1, decay_steps = 10000, decay_rate = 0.96, add_pre_layer_maxpool = True):
@@ -154,13 +157,13 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
         seven_by_seven_conv_pre_layer_weights = tf.Variable(tf.truncated_normal(
             [patch_size, patch_size, num_channels, post_layer_output_feature_maps], stddev=initialised_weights_stddev), name='7x7_pre_w')
         seven_by_seven_conv_pre_layer_biases = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[post_layer_output_feature_maps]), name='7x7_pre_b')
-        #print("image_size:", image_size)
+        if print_messages: print("image_size:", image_size)
         seven_by_seven_conv_pre_layer_output_size = get_filter_output_size(image_size, patch_size, stride)
-        #print("seven_by_seven_conv_pre_layer_output_size:", seven_by_seven_conv_pre_layer_output_size)
+        if print_messages: print("seven_by_seven_conv_pre_layer_output_size:", seven_by_seven_conv_pre_layer_output_size)
 
         three_by_three_maxpool_pre_layer_output_size = get_filter_output_size(seven_by_seven_conv_pre_layer_output_size, patch_size, stride)
         #pre_layer_output_spatial_size
-        #print("three_by_three_maxpool_pre_layer_output_size:", three_by_three_maxpool_pre_layer_output_size)
+        if print_messages: print("three_by_three_maxpool_pre_layer_output_size:", three_by_three_maxpool_pre_layer_output_size)
         
         # Module layers
         modules = []
@@ -170,7 +173,7 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
         stride = 1
         number_of_adjacent_layers_in_inception_module = 4
         for out_channels in module_feature_maps:
-            #print("in_spatial_size:", in_spatial_size)
+            if print_messages: print("in_spatial_size:", in_spatial_size)
             module = create_inception_module(in_channels, out_channels, in_spatial_size, initialised_weights_stddev)
             modules.append(module)
             in_channels = number_of_adjacent_layers_in_inception_module * out_channels
@@ -192,14 +195,14 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
         # Model.
         def create_model_graph(data, add_dropout = False):
             shape = data.get_shape().as_list()
-            #print "data shape: %s" % shape
+            if print_messages: print("data shape: %s" % shape)
             
             # Pre layers
             # 7x7_pre
             stride = 2
             conv = tf.nn.conv2d(data, seven_by_seven_conv_pre_layer_weights, [1, stride, stride, 1], padding='SAME')
             seven_by_seven_conv_pre_layer_output = tf.nn.relu(conv + seven_by_seven_conv_pre_layer_biases)
-            #print "one_by_one_conv_weights_to_three_by_three_output shape: %s" % seven_by_seven_conv_pre_layer_output.get_shape().as_list()
+            if print_messages: print("one_by_one_conv_weights_to_three_by_three_output shape: %s" % seven_by_seven_conv_pre_layer_output.get_shape().as_list())
             
             lrn_input = None
             if add_pre_layer_maxpool:
@@ -222,7 +225,7 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
             modules_output = None
             for module in modules:
                 # The last module will set modules_output for use below.
-                #print("input_tensor shape:", input_tensor.get_shape().as_list())
+                if print_messages: print("input_tensor shape:", input_tensor.get_shape().as_list())
                 modules_output = create_inception_module_graph(module, input_tensor)  
                 input_tensor = modules_output
 
@@ -230,21 +233,21 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
             # I assume that the padding must be VALID based on Google's white paper: http://arxiv.org/pdf/1409.4842v1.pdf
             depth_concat_output_image_size_index = 1
             largest_patch_size = modules_output.get_shape().as_list()[depth_concat_output_image_size_index]
-            #print("largest_patch_size:", largest_patch_size)
+            if print_messages: print("largest_patch_size:", largest_patch_size)
             avg_pool_output = tf.nn.avg_pool(modules_output, [1, largest_patch_size, largest_patch_size, 1], [1, 1, 1, 1], padding='VALID', name=None)
             shape = avg_pool_output.get_shape().as_list()
-            #print("avg_pool_output shape:", shape)
+            if print_messages: print("avg_pool_output shape:", shape)
 
             # Flatten the average_pool_output from 4 dimensions down to 2.
             batch_index = 0
             reshape_tensor = tf.reshape(avg_pool_output, (data.get_shape().as_list()[batch_index], 1 * 1 * depth_concat_depth))
-            #print("reshape_tensor shape: %s" % reshape_tensor.get_shape().as_list())
+            if print_messages: print("reshape_tensor shape: %s" % reshape_tensor.get_shape().as_list())
             
             # Post layers
             # N/A
             
             #fc_layer_one_output = tf.nn.relu(tf.matmul(reshape_tensor, fc_layer_one_weights) + fc_layer_one_biases)
-            #print("fc_layer_one_output shape: %s" % fc_layer_one_output.get_shape().as_list())
+            #if print_messages: print("fc_layer_one_output shape: %s" % fc_layer_one_output.get_shape().as_list())
             # TODO: add dropout.
             #if add_dropout:
             #    hidden = tf.nn.dropout(hidden, dropout_keep_probability)

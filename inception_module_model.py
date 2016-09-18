@@ -225,8 +225,8 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
             modules_output = None
             for module in modules:
                 # The last module will set modules_output for use below.
-                if print_messages: print("input_tensor shape:", input_tensor.get_shape().as_list())
                 modules_output = create_inception_module_graph(module, input_tensor)  
+                if True: print("module output shape:", modules_output.get_shape().as_list())
                 input_tensor = modules_output
 
             # The patch size of the avg_pool must match the patch_size of the depth_concat_output

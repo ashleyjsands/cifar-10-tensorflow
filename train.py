@@ -15,6 +15,7 @@ def train_model_in_batches(model, datasets, steps, dropout_keep_prob, load_model
     steps_to_training_accuracies = {}
     steps_to_validation_predictions = {}
     with tf.Session(graph=model.graph) as session:
+        model.session = session # Save the session for future visualisation use.
         init_op = tf.initialize_all_variables()
         #saver = tf.train.Saver()
         session.run(init_op) # All variables must be initialised before the saver potentionally restores the checkpoint below.
@@ -58,6 +59,7 @@ def train_model_in_batches(model, datasets, steps, dropout_keep_prob, load_model
                     return steps_to_training_accuracies, steps_to_validation_predictions
             if step % save_step_size == 0:
                 save_path = model.saver.save(session, "./%s.ckpt" % model_name, global_step=model.global_step)
+        save_path = model.saver.save(session, "./%s.ckpt" % model_name, global_step=model.global_step)
         test_predictions = eval_predictions(session, model, datasets.test_dataset, datasets.test_labels)
         print("Test accuracy at step %s: %.1f%%\n" % (step, accuracy(test_predictions, datasets.test_labels)))
         seconds_in_an_hour = 60 * 60

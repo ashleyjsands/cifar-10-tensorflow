@@ -6,7 +6,7 @@ This file contains previous models.
 class Model():
     
     def __init__(self, graph, batch_size, eval_batch_size, tf_train_dataset, tf_train_labels, eval_dataset, dropout_keep_probability, logits,
-                 loss, optimizer, train_prediction, eval_prediction, saver, global_step):
+                 loss, optimizer, train_prediction, eval_prediction, saver, global_step, layer_weights):
         self.graph = graph
         self.batch_size = batch_size
         self.eval_batch_size = eval_batch_size
@@ -21,6 +21,8 @@ class Model():
         self.eval_prediction = eval_prediction
         self.saver = saver
         self.global_step = global_step
+        self.layer_weights = layer_weights
+        self.session = None
 
 def create_same_padding_3_conv_one_hidden_model(learning_rate = 0.05, initialised_weights_stddev = 0.1, feature_maps = 16, number_of_hidden_neurons = 64, batch_size = 32, l2_lambda = 0.1, decay_steps = 10000, decay_rate = 0.96):
     patch_size = 5

@@ -30,27 +30,27 @@ class Module():
         return [self.one_by_one_conv_weights_to_three_by_three, self.one_by_one_conv_weights_to_five_by_five, self.one_by_one_conv_weights_to_depthconcat,
                 self.one_by_one_conv_weights_from_max_pool, self.three_by_three_conv_weights, self.five_by_five_conv_weights]
 
-def create_inception_module(in_channels, out_channels, input_spatial_size, initialised_weights_stddev):
+def create_inception_module(in_channels, feature_maps, input_spatial_size, initialised_weights_stddev):
     """
     Inception module:
     input layer
                 1x1+1 conv, 1x1+1 conv, 3x3+1 maxpool
     1x1+1 conv, 3x3+1 conv, 5x5+1 conv, 1x1+1 conv
     DepthConcat
-    AveragePool
     """
+    _1x1_fm, _1x1_3x3_fm, _3x3_fm, _1x1_5x5_fm, _5x5_fm, mp_1x1_fm = feature_maps
     patch_size = 1
     one_by_one_conv_weights_to_three_by_three = tf.Variable(tf.truncated_normal(
-        [patch_size, patch_size, in_channels, out_channels], stddev=initialised_weights_stddev), name='1x1w_to_3x3')
-    one_by_one_conv_biases_to_three_by_three = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[out_channels]), name='1x1b_to_3x3')
+        [patch_size, patch_size, in_channels, _1x1_3x3_fm], stddev=initialised_weights_stddev), name='1x1w_to_3x3')
+    one_by_one_conv_biases_to_three_by_three = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[_1x1_3x3_fm]), name='1x1b_to_3x3')
     
     one_by_one_conv_weights_to_five_by_five = tf.Variable(tf.truncated_normal(
-        [patch_size, patch_size, in_channels, out_channels], stddev=initialised_weights_stddev), name='1x1w_to_5x5')
-    one_by_one_conv_biases_to_five_by_five = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[out_channels]), name='1x1b_to_5x5')
+        [patch_size, patch_size, in_channels, _1x1_5x5_fm], stddev=initialised_weights_stddev), name='1x1w_to_5x5')
+    one_by_one_conv_biases_to_five_by_five = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[_1x1_5x5_fm]), name='1x1b_to_5x5')
     
     one_by_one_conv_weights_to_depthconcat = tf.Variable(tf.truncated_normal(
-        [patch_size, patch_size, in_channels, out_channels], stddev=initialised_weights_stddev), name='1x1w_to_depth_concat')
-    one_by_one_conv_biases_to_depthconcat = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[out_channels]), name='1x1b_to_depth_concat')
+        [patch_size, patch_size, in_channels, _1x1_fm], stddev=initialised_weights_stddev), name='1x1w_to_depth_concat')
+    one_by_one_conv_biases_to_depthconcat = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[_1x1_fm]), name='1x1b_to_depth_concat')
     
     #number_of_max_pools = 1
     #three_by_three_max_pool_output_size = get_filter_output_size(image_size, number_of_max_pools)
@@ -59,21 +59,21 @@ def create_inception_module(in_channels, out_channels, input_spatial_size, initi
     three_by_three_max_pool_output_size = get_filter_output_size(input_spatial_size, max_pool_size, max_pool_stride)
     if print_messages: print("three_by_three_max_pool_output_size: %s" % three_by_three_max_pool_output_size)
     one_by_one_conv_weights_from_max_pool = tf.Variable(tf.truncated_normal(
-        [three_by_three_max_pool_output_size, three_by_three_max_pool_output_size, in_channels, out_channels], stddev=initialised_weights_stddev),
+        [three_by_three_max_pool_output_size, three_by_three_max_pool_output_size, in_channels, mp_1x1_fm], stddev=initialised_weights_stddev),
                                                         name='1x1w_from_maxpool')
-    one_by_one_conv_biases_from_max_pool = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[out_channels]), name='1x1b_from_maxpool')
+    one_by_one_conv_biases_from_max_pool = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[mp_1x1_fm]), name='1x1b_from_maxpool')
     
     patch_size = 3
     three_by_three_conv_weights = tf.Variable(tf.truncated_normal(
-        [patch_size, patch_size, out_channels, out_channels], stddev=initialised_weights_stddev), name='3x3w')
-    three_by_three_conv_biases = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[out_channels]), name='3x3b')
+        [patch_size, patch_size, _1x1_3x3_fm, _3x3_fm], stddev=initialised_weights_stddev), name='3x3w')
+    three_by_three_conv_biases = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[_3x3_fm]), name='3x3b')
     
     patch_size = 5
     five_by_five_conv_weights = tf.Variable(tf.truncated_normal(
-        [patch_size, patch_size, out_channels, out_channels], stddev=initialised_weights_stddev), name='5x5w')
-    five_by_five_conv_biases = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[out_channels]), name='5x5b')
+        [patch_size, patch_size, _1x1_5x5_fm, _5x5_fm], stddev=initialised_weights_stddev), name='5x5w')
+    five_by_five_conv_biases = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[_5x5_fm]), name='5x5b')
 
-    # The 3x3 maxpooling layer, DepthConcat layer, and averagepooling layer don't need any variables.
+    # The 3x3 maxpooling layer, and DepthConcat layer don't need any variables.
     return Module(one_by_one_conv_weights_to_three_by_three, one_by_one_conv_biases_to_three_by_three, one_by_one_conv_weights_to_five_by_five, one_by_one_conv_biases_to_five_by_five,
             one_by_one_conv_weights_to_depthconcat, one_by_one_conv_biases_to_depthconcat, one_by_one_conv_weights_from_max_pool, one_by_one_conv_biases_from_max_pool, three_by_three_conv_weights,
             three_by_three_conv_biases, five_by_five_conv_weights, five_by_five_conv_biases)
@@ -122,7 +122,12 @@ def create_inception_module_graph(module, input_tensor):
     if print_messages: print("depth_concat_output shape: %s" % shape)
     return depth_concat_output
 
-def create_inception_module_model(learning_rate = 0.05, initialised_weights_stddev = 0.1, pre_layer_feature_maps = 64, module_feature_maps=[128], batch_size = 32, eval_batch_size = 1000, l2_lambda = 0.1, decay_steps = 10000, decay_rate = 0.96, add_pre_layer_maxpool = True):
+def get_depth_concat_depth(module_feature_maps):
+    num_of_feature_maps = 6
+    _1x1_fm, _1x1_3x3_fm, _3x3_fm, _1x1_5x5_fm, _5x5_fm, mp_1x1_fm = range(num_of_feature_maps)
+    return module_feature_maps[_1x1_fm] + module_feature_maps[_3x3_fm] + module_feature_maps[_5x5_fm] + module_feature_maps[mp_1x1_fm]
+
+def create_inception_module_model(learning_rate = 0.05, initialised_weights_stddev = 0.1, pre_layer_feature_maps = 64, module_feature_maps=[(128, 128, 128, 128, 128, 128)], batch_size = 32, eval_batch_size = 1000, l2_lambda = 0.1, decay_steps = 10000, decay_rate = 0.96, add_pre_layer_maxpool = False):
     graph = tf.Graph()
     with graph.as_default():
 
@@ -172,24 +177,24 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
         number_of_reducing_layers = 2
         stride = 1
         number_of_adjacent_layers_in_inception_module = 4
-        for out_channels in module_feature_maps:
+        for feature_maps in module_feature_maps:
             if print_messages: print("in_spatial_size:", in_spatial_size)
-            module = create_inception_module(in_channels, out_channels, in_spatial_size, initialised_weights_stddev)
+            module = create_inception_module(in_channels, feature_maps, in_spatial_size, initialised_weights_stddev)
             modules.append(module)
-            in_channels = number_of_adjacent_layers_in_inception_module * out_channels
+            in_channels = get_depth_concat_depth(feature_maps)
             in_spatial_size = get_filter_output_size(in_spatial_size, number_of_reducing_layers, stride)
 
         # Now a fully connected layer
         depth_concat_depth = in_channels #module_feature_maps[-1] * number_of_adjacent_layers_in_inception_module
         # I expect avg_pool_ouput to have a shape of (batch_size, 1, 1, depth_concat_depth)
         # WARNING: I may have gotten the fc_weights tensor size wrong.
-        #fc_layer_one_neurons = 25
-        #fc_layer_one_weights = tf.Variable(tf.truncated_normal(
-        #    [depth_concat_depth, fc_layer_one_neurons], stddev=initialised_weights_stddev * 10))
-        #fc_layer_one_biases = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[fc_layer_one_neurons]))
+        fc_layer_one_neurons = 1000
+        fc_layer_one_weights = tf.Variable(tf.truncated_normal(
+            [depth_concat_depth, fc_layer_one_neurons], stddev=initialised_weights_stddev * 10))
+        fc_layer_one_biases = tf.Variable(tf.constant(initialised_weights_stddev * 10, shape=[fc_layer_one_neurons]))
         
         output_weights = tf.Variable(tf.truncated_normal(
-            [depth_concat_depth, num_labels], stddev=initialised_weights_stddev))
+            [fc_layer_one_neurons, num_labels], stddev=initialised_weights_stddev))
         output_biases = tf.Variable(tf.constant(1.0, shape=[num_labels]))
         
         # Model.
@@ -226,7 +231,7 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
             for module in modules:
                 # The last module will set modules_output for use below.
                 modules_output = create_inception_module_graph(module, input_tensor)  
-                if True: print("module output shape:", modules_output.get_shape().as_list())
+                if print_messages: print("module output shape:", modules_output.get_shape().as_list())
                 input_tensor = modules_output
 
             # The patch size of the avg_pool must match the patch_size of the depth_concat_output
@@ -244,19 +249,18 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
             if print_messages: print("reshape_tensor shape: %s" % reshape_tensor.get_shape().as_list())
             
             # Post layers
-            # N/A
+            # fully connected
             
-            #fc_layer_one_output = tf.nn.relu(tf.matmul(reshape_tensor, fc_layer_one_weights) + fc_layer_one_biases)
-            #if print_messages: print("fc_layer_one_output shape: %s" % fc_layer_one_output.get_shape().as_list())
-            # TODO: add dropout.
-            #if add_dropout:
-            #    hidden = tf.nn.dropout(hidden, dropout_keep_probability)
-            return tf.matmul(reshape_tensor, output_weights) + output_biases
+            output = tf.nn.relu(tf.matmul(reshape_tensor, fc_layer_one_weights) + fc_layer_one_biases)
+            if print_messages: print("fc_layer_one_output shape: %s" % output.get_shape().as_list())
+            if add_dropout:
+                output = tf.nn.dropout(output, dropout_keep_probability)
+            return tf.matmul(output, output_weights) + output_biases
 
         # Training computation.
         logits = create_model_graph(tf_train_dataset, add_dropout = True)
         module_weights = functools.reduce(lambda a, b: a + b, map(lambda m: m.get_weights(), modules))
-        layer_weights = [ seven_by_seven_conv_pre_layer_weights ] + module_weights + [ output_weights ]
+        layer_weights = [ seven_by_seven_conv_pre_layer_weights ] + module_weights + [ fc_layer_one_weights, output_weights ]
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels) + get_l2_loss(l2_lambda, layer_weights))
 
         # Optimizer.
@@ -269,5 +273,4 @@ def create_inception_module_model(learning_rate = 0.05, initialised_weights_stdd
         eval_prediction = tf.nn.softmax(create_model_graph(eval_dataset))
         
         saver = tf.train.Saver()
-        return Model(graph, batch_size, eval_batch_size, tf_train_dataset, tf_train_labels, eval_dataset, dropout_keep_probability, logits, loss, 
-                     optimizer, train_prediction, eval_prediction, saver, global_step)
+        return Model(graph, batch_size, eval_batch_size, tf_train_dataset, tf_train_labels, eval_dataset, dropout_keep_probability, logits, loss, optimizer, train_prediction, eval_prediction, saver, global_step, layer_weights)

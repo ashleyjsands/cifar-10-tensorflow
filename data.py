@@ -94,3 +94,30 @@ class Datasets:
         self.valid_labels = valid_labels
         self.test_dataset = test_dataset
         self.test_labels = test_labels
+
+def subtract_mean_from_images(datasets):
+    """The purpose of subtracting the mean from the images is to "centre" the values of the dataset.
+       Doing so allows the weights to not grow out of control and thus allow the model to train quicker and produce superior performance."""
+    # I assume that its a case of data leakage to calculate the mean using the test dataset in addition to the rest.
+    mean = get_mean_of_training_and_validation_images(datasets)
+    print("Subtracting mean of", mean, "from all images.")
+    datasets.train_dataset = subtract_value_from_dataset(mean, datasets.train_dataset)
+    datasets.valid_dataset = subtract_value_from_dataset(mean, datasets.valid_dataset)
+    datasets.test_dataset = subtract_value_from_dataset(mean, datasets.test_dataset)
+
+def get_mean_of_training_and_validation_images(datasets):
+    total = sum_dataset(datasets.train_dataset) + sum_dataset(datasets.valid_dataset)
+    number_of_images = (len(datasets.train_dataset) + len(datasets.valid_dataset))
+
+    from data import image_size, num_channels
+
+    return int(round(total / (number_of_images * image_size * image_size * num_channels)))
+
+def sum_dataset(dataset):
+    total = 0
+    for image in dataset:
+        total += np.sum(image)
+    return total
+
+def subtract_value_from_dataset(value, dataset):
+    return [image - value for image in dataset]
